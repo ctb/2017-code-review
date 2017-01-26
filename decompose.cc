@@ -52,7 +52,9 @@ void increment_count(HashType kmer)
 // passes that value to increment_count.
 //
 
-void XXXXXcount_kmers(const std::string &s, const unsigned int k)
+// https://tinyurl.com/titusCode
+
+void count_kmers(const std::string &s, const unsigned int k)
 {
   const char * sp = s.c_str();
 
@@ -77,7 +79,7 @@ void XXXXXcount_kmers(const std::string &s, const unsigned int k)
   }
 }
 
-void count_kmers(const std::string &s, const unsigned int k)
+void slow_count_kmers(const std::string &s, const unsigned int k)
 {
     HashType f, r;
     for (unsigned int i = 0; i < s.length() - k + 1; i++){
