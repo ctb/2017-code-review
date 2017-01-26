@@ -57,46 +57,68 @@ void increment_count(HashType kmer)
 
 // this function counts k-mers
 
-void count_kmers(const std::string &s, const unsigned int k)
+class KmerIterator {
+public:
+    std::string input_string;
+    const unsigned int k;
+    unsigned int pos;
+    HashType bitmask;
+    HashType f, r;
+    bool _initialized;
+
+    KmerIterator(std::string inp, unsigned int ksize) :
+        input_string(inp), k(ksize)
+    {
+        // initialize a 2*k-sized bitmask to all ones.
+        for (unsigned char i = 0; i < k; i++) {
+            bitmask = (bitmask << 2) | 3;
+        }
+        f = 0;
+        r = 0;
+        _initialized = false;
+    }
+
+    bool finished() {
+        return (pos >= input_string.length());
+    }
+
+    HashType next()
+    {
+        HashType h;
+        if (!_initialized) {
+            h = _hash(input_string.c_str(), k, f, r);
+            pos = k;
+            _initialized = true;
+            return h;
+        }
+
+        unsigned char ch = *(input_string.c_str() + pos);
+
+        // bitshift left by 2, giving room for new 2bit hash
+        f = f << 2;
+        f |= twobit_repr(ch);
+        f &= bitmask;
+
+        // do the same for the reverse complement
+        r = r >> 2;
+        r |= (twobit_comp(ch) << (k*2 - 2));
+        // choose a single canonical representation
+        h = uniqify_rc(f, r);
+
+        pos += 1;
+        return h;
+    }
+};
+
+void count_kmers(const std::string &input_string, const unsigned int k)
 {
-  const char * sp = s.c_str();
+    KmerIterator ki(input_string, k);
+    HashType h;
 
-  HashType bitmask = 0;
-
-  // initialize a 2*k-sized bitmask to all ones.
-  for (unsigned char i = 0; i < k; i++) {
-    bitmask = (bitmask << 2) | 3;
-  }
-
-  HashType f, r;
-
-  // calculate the first k-mer, and make sure to count it.
-  HashType h = _hash(sp, k, f, r);
-  increment_count(h);
-
-  // now, iterate over the rest, using a rolling hash function.
-  unsigned int i = 0;
-  for (i = k; i < s.length(); i++) {
-    unsigned char ch = *(sp + i);
-
-    // bitshift left by 2, giving room for new 2bit hash
-    f = f << 2;
-
-    // add 2bit hash
-    f |= twobit_repr(ch);
-
-    // mask off high bits
-    f &= bitmask;
-
-    // do the same for the reverse complement
-    r = r >> 2;
-    r |= (twobit_comp(ch) << (k*2 - 2));
-
-    // choose a single canonical representation
-    h = uniqify_rc(f, r);
-    increment_count(h);
-  }
-  assert(i == s.length());
+    while (!ki.finished()) {
+        h = ki.next();
+        increment_count(h);
+    }
 }
 
 void slow_count_kmers(const std::string &s, const unsigned int k)
