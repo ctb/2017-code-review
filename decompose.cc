@@ -1,5 +1,6 @@
 #include <iostream>
 #include <string>
+#include <assert.h>
 
 //
 // these are givens - let's assume this code works.
@@ -54,29 +55,48 @@ void increment_count(HashType kmer)
 
 // https://tinyurl.com/titusCode
 
+// this function counts k-mers
+
 void count_kmers(const std::string &s, const unsigned int k)
 {
   const char * sp = s.c_str();
 
   HashType bitmask = 0;
+
+  // initialize a 2*k-sized bitmask to all ones.
   for (unsigned char i = 0; i < k; i++) {
     bitmask = (bitmask << 2) | 3;
   }
 
   HashType f, r;
+
+  // calculate the first k-mer, and make sure to count it.
   HashType h = _hash(sp, k, f, r);
   increment_count(h);
-  
-  for (unsigned int i = k; i < s.length(); i++) {
+
+  // now, iterate over the rest, using a rolling hash function.
+  unsigned int i = 0;
+  for (i = k; i < s.length(); i++) {
     unsigned char ch = *(sp + i);
+
+    // bitshift left by 2, giving room for new 2bit hash
     f = f << 2;
+
+    // add 2bit hash
     f |= twobit_repr(ch);
+
+    // mask off high bits
     f &= bitmask;
+
+    // do the same for the reverse complement
     r = r >> 2;
     r |= (twobit_comp(ch) << (k*2 - 2));
+
+    // choose a single canonical representation
     h = uniqify_rc(f, r);
     increment_count(h);
   }
+  assert(i == s.length());
 }
 
 void slow_count_kmers(const std::string &s, const unsigned int k)
